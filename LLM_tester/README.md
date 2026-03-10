@@ -42,21 +42,78 @@ ollama list
 
 ### 3. Python dependencies
 
+Create a virtual environment (recommended):
 
-
-
-
-
-
-
-
-
-
-
-
-
-## Python dependencies
+```bash
+python -m venv venv
+source venv/bin/activate
+```
 
 Install:
 
 pip install -r requirements.txt
+
+
+### 4. Run the service
+
+First, navigate to your folder path
+Then in the terminal, run:
+```
+python app.py
+```
+This web server will run on http://localhost:5000
+Click on the link, and you shhould be good to go.
+
+### 5. Usage 
+1.	Open the web interface.
+2.	Configure the parameters:
+
+The default api is this:
+```
+http://localhost:11434/v1
+```
+
+  •	Model
+Automatically detected from your local Ollama installation.
+	•	Concurrent Users
+Number of simultaneous LLM requests.
+	•	Prompt
+The prompt used for testing.
+
+3. Start the test
+Each concurrent request will appear in a separate result window showing:
+	•	latency
+	•	tokens generated
+	•	tokens per second
+	•	streamed model 
+
+```
+Browser
+   │
+   │  HTTP
+   ▼
+Flask Backend
+   │
+   │  OpenAI-compatible API
+   ▼
+Ollama (localhost:11434)
+   │
+   ▼
+Local LLM Models
+```
+
+## Features
+	•	Concurrent LLM request testing
+	•	Streaming token output
+	•	Real-time performance metrics
+	•	Automatic detection of local Ollama models
+	•	Simple web interface
+	•	Compatible with OpenAI-style API
+
+
+## Notes
+	•	Ollama must be running before starting the server.
+	•	Large models may significantly affect latency and token throughput.
+	•	Concurrent tests depend on your machine’s CPU/GPU capacity.
+
+
