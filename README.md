@@ -85,8 +85,12 @@ Each concurrent request will appear in a separate result window showing:
 	•	latency
 	•	tokens generated
 	•	tokens per second
-	•	streamed model 
+	•	streamed model
+	•	Time to First Token
+	•	Throughput
 
+After running, each separate window will show the run's ttft, token/s, latency, and total tokens. The top of the page will show averages of all mentioned before as well as throughput.
+At the bottom of the page, there will be a graph showing the trend of TTFT as number of users increases. Since ollama uses queue-like structure to perform multi-threading, TTFT becomes a more viable criterion for benchmarks than token/s.
 ```
 Browser
    │
@@ -109,6 +113,7 @@ Local LLM Models
 	•	Automatic detection of local Ollama models
 	•	Simple web interface
 	•	Compatible with OpenAI-style API
+	•	Concurrent graphs
 
 
 ## Notes
