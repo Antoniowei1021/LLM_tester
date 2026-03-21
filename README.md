@@ -51,9 +51,9 @@ source venv/bin/activate
 ```
 
 Install:
-
+```
 pip install -r requirements.txt
-
+```
 
 ### 4. Run the service
 
