@@ -1,5 +1,0 @@
-Flask>=3.0
-requests>=2.31
-matplotlib>=3.7
-threading2>=0.1.0
-time>=0.1.0
