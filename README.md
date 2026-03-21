@@ -1,4 +1,5 @@
-This is a rudimentary pressure tester for personal LLMs. This tool is based on Ollama and Python Flask. It can automatically detect models installed on users' PCs and run tests. It can test prompts, model responses, latencies, token/s, and multi-thread capabilities. 
+This is a rudimentary pressure tester for personal LLMs. This tool is based on Ollama and Python Flask. It can automatically detect models installed on users' PCs and run tests. It can test the computer's capacity by testing prompts, model responses, latencies, token/s, and multi-thread capabilities. There will be a graph below to show the relationship between number of users and time to first token, a more viable standard than token/s under ollama environment. 
+
 
 ## Requirements
 
