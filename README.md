@@ -121,3 +121,4 @@ Local LLM Models
 	•	Ollama must be running before starting the server.
 	•	Large models may significantly affect latency and token throughput.
 	•	Concurrent tests depend on your machine’s CPU/GPU capacity.
+	•	This app performs well on no thinking models but won't multithread on thinking models. 
