@@ -204,7 +204,7 @@
     <div class="result">
       <div style="font-weight:800;">性能图表</div>
       <div class="subtitle">按并发数排序展示历史测试结果（TTFT / Token/s）。</div>
-      <img id="statChart" class="chart-img" alt="性能图表" />
+      <img id="statChart" class="chart-img" alt="性能图表" />  
     </div>
   </div>
 
@@ -214,6 +214,8 @@
   // Floating windows (one per concurrent user)
   let pollTimer = null;
   let currentRunId = null;
+  let hasSeenActiveRun = false;
+  let expectedRunCount = 0;
 
   function stopPolling(){
     if (pollTimer){
@@ -276,16 +278,19 @@
       const ok = !!r.ok;
       const statusCode = (r.status_code ?? "-");
       const err = (r.error || "");
+      const status = r.status || (ok ? "completed" : (err ? "error" : "running"));
 
-      meta.textContent = ok ? `HTTP ${statusCode}` : (err ? "error" : "running");
-      st.textContent = `status: ${ok ? "ok" : (err ? "failed" : "running")}`;
+      meta.textContent = ok ? `HTTP ${statusCode}` : (err ? "error" : status);
+      st.textContent = `status: ${status}`;
 
       const lat = (typeof r.latency === "number") ? r.latency.toFixed(3) : "-";
       const ttft = (typeof r.ttft_sec === "number") ? r.ttft_sec.toFixed(3) : "-";
       const tps = (typeof r.token_per_sec === "number") ? r.token_per_sec.toFixed(3) : "-";
       const toks = (typeof r.completion_tokens === "number") ? r.completion_tokens : "-";
+      const started = (typeof r.started_at_offset_sec === "number") ? r.started_at_offset_sec.toFixed(3) : "-";
+      const firstTok = (typeof r.first_token_at_offset_sec === "number") ? r.first_token_at_offset_sec.toFixed(3) : "-";
 
-      metrics.textContent = `TTFT: ${ttft}s | latency: ${lat}s | token/s: ${tps} | tokens: ${toks}`;
+      metrics.textContent = `start+${started}s | first token+${firstTok}s | TTFT: ${ttft}s | latency: ${lat}s | token/s: ${tps} | tokens: ${toks}`;
 
       if (r.response && r.response.trim().length > 0){
         pre.textContent = r.response;
@@ -301,6 +306,11 @@
     try{
       const res = await fetch("/result", { method: "GET" });
       const j = await res.json();
+      const runs = Array.isArray(j.runs) ? j.runs : [];
+      const activeStatuses = new Set(["pending", "request_started", "streaming"]);
+      if (runs.length === expectedRunCount && runs.some(r => r && activeStatuses.has(r.status))) {
+        hasSeenActiveRun = true;
+      }
       // Always show full result in the main output panel for debugging
       setOut(j);
       updateFloatingWindows(j);
@@ -312,12 +322,20 @@ if (summary && j){
   const totalLat = (typeof j.total_latency_sec === "number") ? j.total_latency_sec.toFixed(3) : "-";
   const throughput = (typeof j.throughput_tps === "number") ? j.throughput_tps.toFixed(3) : "-";
   const totalTokens = (typeof j.total_tokens === "number") ? j.total_tokens : "-";
+  const startedOffsets = runs
+    .map(r => r && typeof r.started_at_offset_sec === "number" ? r.started_at_offset_sec : null)
+    .filter(v => v !== null);
+  const firstTokenOffsets = runs
+    .map(r => r && typeof r.first_token_at_offset_sec === "number" ? r.first_token_at_offset_sec : null)
+    .filter(v => v !== null);
+  const startedAtOffset = startedOffsets.length ? startedOffsets.map(v => v.toFixed(3)).join(", ") : "-";
+  const firstTokenAtOffset = firstTokenOffsets.length ? firstTokenOffsets.map(v => v.toFixed(3)).join(", ") : "-";
 
   summary.textContent =
-    `Avg TTFT: ${avgTtft}s | Avg latency: ${avgLat}s | Avg token/s: ${avgTps} | Throughput: ${throughput} tok/s | Total tokens: ${totalTokens} | Total latency: ${totalLat}s`;
+    `Avg TTFT: ${avgTtft}s | Avg latency: ${avgLat}s | Avg token/s: ${avgTps} | request start offsets: [${startedAtOffset}] | first token offsets: [${firstTokenAtOffset}] | Throughput: ${throughput} tok/s | Total tokens: ${totalTokens} | Total latency: ${totalLat}s`;
 }
       // stop polling once completed/cancelled
-      if (j && (j.status === "completed" || j.status === "cancelled")){
+      if (j && hasSeenActiveRun && (j.status === "completed" || j.status === "cancelled")){
         stopPolling();
         loadChart();
       }
@@ -418,6 +436,8 @@ if (summary && j){
 
   $("clearBtn").onclick = async () => {
   stopPolling();
+  hasSeenActiveRun = false;
+  expectedRunCount = 0;
 
   try{
     await fetch("/delete_history", { method: "POST" });
@@ -472,33 +492,39 @@ if (summary && j){
 
   $("submitBtn").onclick = async () => {
     stopPolling();
+    hasSeenActiveRun = false;
 
     const payload = buildPayload();
     const n = payload.num_users || 1;
+    expectedRunCount = n;
 
     // create one floating window per concurrent user
     createFloatingWindows(n);
 
     setOut("Running LLM test...\n");
 
-    const res = await fetch("/submitPrompt", {
+    // Start polling immediately. Do not wait for /submitPrompt to return,
+    // otherwise the UI cannot show streaming updates while the backend is still running.
+    pollTimer = setInterval(pollResult, 300);
+
+    fetch("/submitPrompt", {
       method:"POST",
       headers:{"Content-Type":"application/json"},
       body: JSON.stringify(payload)
+    })
+    .then(async (res) => {
+      const ct = res.headers.get("Content-Type") || "";
+      if (ct.includes("application/json")) {
+        setOut(await res.json());
+      } else {
+        setOut(await res.text());
+      }
+      await pollResult();
+    })
+    .catch((e) => {
+      setOut("POST /submitPrompt failed: " + e);
+      stopPolling();
     });
-
-    // We don't block UI on the submit response; start polling results.
-    // Still show submit response once.
-    const ct = res.headers.get("Content-Type") || "";
-    if (ct.includes("application/json")) {
-      setOut(await res.json());
-    } else {
-      setOut(await res.text());
-    }
-
-    // Start polling every 800ms
-    pollResult();
-    pollTimer = setInterval(pollResult, 800);
   };
 </script>
 </body>
