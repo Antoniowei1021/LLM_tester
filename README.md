@@ -1,4 +1,4 @@
-This is a rudimentary pressure tester for personal LLMs. This tool is based on Ollama and Python Flask. It can automatically detect models installed on users' PCs and run tests. It can test the computer's capacity by testing prompts, model responses, latencies, token/s, and multi-thread capabilities. There will be a graph below to show the relationship between number of users and time to first token, a more viable standard than token/s under ollama environment. 
+This is a rudimentary pressure tester for personal LLMs. This tool is based on Ollama and Python Flask. It can automatically detect models installed on users' PCs and run tests. It can test the computer's capacity by testing prompts, model responses, latencies, token/s, and multi-thread capabilities. There will be a graph below to show the relationship between number of users and time to first token, a more viable standard than token/s under ollama environment. Solved issues including incorrect token/s, halting function, and will multithread on any models now.
 
 
 ## Requirements
@@ -121,4 +121,4 @@ Local LLM Models
 	•	Ollama must be running before starting the server.
 	•	Large models may significantly affect latency and token throughput.
 	•	Concurrent tests depend on your machine’s CPU/GPU capacity.
-	•	This app performs well on no thinking models but won't multithread on thinking models. 
+
